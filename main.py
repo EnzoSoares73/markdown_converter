@@ -16,11 +16,11 @@ def taggify_start(content):
     return text
 
 
-def taggify_end(text):
+def taggify_end(text:str):
     return '</' + text + '>'
 
 
-def list_1d_to_2d(lista, column_size=2):
+def list_1d_to_2d(lista:list, column_size:int=2):
     var = []
     temp = []
     column_count = 0
@@ -50,85 +50,120 @@ def verify_if_pos_is_inside_cod(pos, locations):
             return False
     return True
 
-def markdown_converter(text):
-    signals = {
-        'code_signal': {
-            '`': {
-                'pre': 'container',
-                'code': 'language-python code'
-            }
-        },
-        'subsubtitle_signal': {
-            '###': {
-                'h5': 'gray-text'
-            }
-        },
-        'subtitle_signal': {
-            '##': {
-                'h4': 'gray-text'
-            }
-        },
-        'title_signal': {
-            '#': {
-                'h3': 'gray-text'
-            }
-        },
-        'bold_signal': {
-            '--': {
-                'b': ''
-            }
-        },
-        'list_signal': {
-            '**': {
-                'li': ''
+def verify_if_signal_has_one_nested_dict(signals: dict):
+    for keys, values in signals.items():
+        print(keys)
+        if (len(list(values.keys())) != 1):
+            raise ValueError(f'Signal {keys} has {len(list(values.keys()))} keys, 1 expected')
+
+def verify_if_no_keys_are_empty(signals: dict):
+    for keys, values in signals.items():
+        if (list(values.keys())[0] == ''):
+            raise ValueError("Signal has empty key")
+
+
+def markdown_converter(text:str, signals:dict=None):
+    if (signals == None):
+        signals = {
+            'code_signal': {
+                '`': {
+                    'pre': 'container',
+                    'code': 'language-python code'
+                }
+            },
+            'subsubtitle_signal': {
+                '###': {
+                    'h5': 'gray-text'
+                }
+            },
+            'subtitle_signal': {
+                '##': {
+                    'h4': 'gray-text'
+                }
+            },
+            'title_signal': {
+                '#': {
+                    'h3': 'gray-text'
+                }
+            },
+            'bold_signal': {
+                '--': {
+                    'b': ''
+                }
+            },
+            'list_signal': {
+                '**': {
+                    'li': ''
+                }
             }
         }
-    }
+
+
+    verify_if_signal_has_one_nested_dict(signals)
+    verify_if_no_keys_are_empty(signals)
 
     tag_code_start = ''
     tag_code_end = ''
 
-    #Troca todas as ocorrencias de signals['code_signal'] pelo suas tags equivalentes
-    for value in signals['code_signal'].values(): 
-        tag_code_start = append_strings_in_list([taggify_start(j) for j in value.items()])
-        tag_code_end = append_strings_in_list(reversed([taggify_end(j[0]) for j in value.items()]))
+    if 'code_signal' in signals:
+        # Troca todas as ocorrencias de signals['code_signal'] pelo suas tags equivalentes
+        for value in signals['code_signal'].values():
+            tag_code_start = append_strings_in_list([taggify_start(j) for j in value.items()])
+            tag_code_end = append_strings_in_list(reversed([taggify_end(j[0]) for j in value.items()]))
 
-        code_signal = [item for item in signals['code_signal'].keys()][0]
+            code_signal = [item for item in signals['code_signal'].keys()][0]
 
-        while True:
-            verify = text
-            text = text.replace(code_signal, append_strings_in_list([taggify_start(j) for j in value.items()]), 1)
-            text = text.replace(code_signal, append_strings_in_list(reversed([taggify_end(j[0]) for j in value.items()])), 1)
+            while True:
+                verify = text
+                text = text.replace(code_signal, append_strings_in_list([taggify_start(j) for j in value.items()]), 1)
+                text = text.replace(code_signal,
+                                    append_strings_in_list(reversed([taggify_end(j[0]) for j in value.items()])), 1)
 
-            if verify == text:
-                break
+                if verify == text:
+                    break
 
-    signals.pop('code_signal')
+        signals.pop('code_signal')
 
-    #Para cada simbolo markdown exceto 'code_signal', troca-o por suas tags com classes se esses simbolos nao estiverem dentro de tags 'code_signal'
-    for key, value in signals.items():
-        for key1, value1 in value.items():
-            temp = 0
-            locations = set([])
-            var = True
+        #Para cada simbolo markdown exceto 'code_signal', troca-o por suas tags com classes se esses simbolos nao estiverem dentro de tags 'code_signal'
+        for key, value in signals.items():
+            for key1, value1 in value.items():
+                temp = 0
+                locations = set([])
+                var = True
 
-            while var:
-                locations = update_locations(locations, tag_code_start, tag_code_end, text)
-                locations = set(list_1d_to_2d(sorted(locations)))
-                temp = text.find(key1, temp + 1)
+                while var:
+                    locations = update_locations(locations, tag_code_start, tag_code_end, text)
+                    locations = set(list_1d_to_2d(sorted(locations)))
+                    temp = text.find(key1, temp + 1)
 
-                for _ in locations:
+                    for _ in locations:
+                        if temp == -1:
+                            var = False
+                            break
+                        elif verify_if_pos_is_inside_cod(temp, locations):
+                            text = text[:temp] + text[temp:].replace(key1, append_strings_in_list([taggify_start(j) for j in value1.items()]), 1)
+                            text = text[:temp] + text[temp:].replace(key1, append_strings_in_list(reversed([taggify_end(j[0]) for j in value1.items()])), 1)
+                            break
+                        else:
+                            break
+                    locations.clear()
+        return text
+
+    else:
+        for key, value in signals.items():
+            for key1, value1 in value.items():
+                temp = -1
+
+                while True:
+                    temp = text.find(key1, temp + 1)
                     if temp == -1:
-                        var = False
-                        break
-                    elif verify_if_pos_is_inside_cod(temp, locations):
-                        text = text[:temp] + text[temp:].replace(key1, append_strings_in_list([taggify_start(j) for j in value1.items()]), 1)
-                        text = text[:temp] + text[temp:].replace(key1, append_strings_in_list(reversed([taggify_end(j[0]) for j in value1.items()])), 1)
                         break
                     else:
-                        break
-                locations.clear()
-    return text
+                        text = text[:temp] + text[temp:].replace(key1, append_strings_in_list(
+                            [taggify_start(j) for j in value1.items()]), 1)
+                        text = text[:temp] + text[temp:].replace(key1, append_strings_in_list(
+                            reversed([taggify_end(j[0]) for j in value1.items()])), 1)
+        return text
 
 
 text = "`" \
@@ -146,5 +181,16 @@ text = "`" \
        "`" \
        "--##Mais um outro codigo##--" \
        "`"
+
+signals = {
+    'test_signal': {
+        '`': {
+            'test': ''
+        },
+        '6': {
+            'test1': ''
+        }
+    }
+}
 
 print(markdown_converter(text))
