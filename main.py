@@ -53,17 +53,17 @@ def verify_if_pos_is_inside_cod(pos, locations):
 def verify_if_signal_has_one_nested_dict(signals: dict):
     for keys, values in signals.items():
         print(keys)
-        if (len(list(values.keys())) != 1):
+        if len(list(values.keys())) != 1:
             raise ValueError(f'Signal {keys} has {len(list(values.keys()))} keys, 1 expected')
 
 def verify_if_no_keys_are_empty(signals: dict):
     for keys, values in signals.items():
-        if (list(values.keys())[0] == ''):
+        if list(values.keys())[0] == '':
             raise ValueError("Signal has empty key")
 
 
 def markdown_converter(text:str, signals:dict=None):
-    if (signals == None):
+    if signals is None:
         signals = {
             'code_signal': {
                 '`': {
@@ -165,32 +165,24 @@ def markdown_converter(text:str, signals:dict=None):
                             reversed([taggify_end(j[0]) for j in value1.items()])), 1)
         return text
 
+def main():
+    text = "`" \
+           "###--Código qualquer--###" \
+            "flkajsdçlfkjaklçsdf" \
+           "`" \
+           "###Titulo qualquer###" \
+           "--Texto em negrito--" \
+           "**lista1**" \
+           "**lista2**" \
+           "asdfjhasdlkjfsalkdf" \
+           "`" \
+           "--Outro codigo--" \
+           "`" \
+           "`" \
+           "--##Mais um outro codigo##--" \
+           "`"
 
-text = "`" \
-       "###--Código qualquer--###" \
-        "flkajsdçlfkjaklçsdf" \
-       "`" \
-       "###Titulo qualquer###" \
-       "--Texto em negrito--" \
-       "**lista1**" \
-       "**lista2**" \
-       "asdfjhasdlkjfsalkdf" \
-       "`" \
-       "--Outro codigo--" \
-       "`" \
-       "`" \
-       "--##Mais um outro codigo##--" \
-       "`"
+    print(markdown_converter(text))
 
-signals = {
-    'test_signal': {
-        '`': {
-            'test': ''
-        },
-        '6': {
-            'test1': ''
-        }
-    }
-}
-
-print(markdown_converter(text))
+if __name__ == '__main':
+    main()
